@@ -1,0 +1,48 @@
+# This sensor monitors the `ce-users` GitHub repo for new commits,
+# and trigger the `ce-users` Workflow when a new commit is detected.
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+
+metadata:
+  name: py-spfi-api-github  # This should be unique across all Sensors.
+  namespace: argo
+
+spec:
+  template:
+    # Don't change this serviceAccountName
+    serviceAccountName: operate-workflow-sa
+  dependencies:
+    # The "github" event source and "github-climateengine" will emit a message for any action
+    # across all repositories in the Climate Engine organization.
+    # Therefore, it's essential to filter on (at least) the repository name and event type.
+    - name: github
+      eventSourceName: github
+      eventName: github-climateengine
+      filters:
+        data:
+          # Type of GitHub event that triggered the delivery: [pull_request, push, issues, label, ...]
+          # https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads
+          - path: headers.X-Github-Event
+            type: string
+            value:
+              # We will only trigger the Workflow when a new commit is pushed to the repo.
+              - push
+          # Filter on the repository name
+          - path: body.repository.full_name
+            type: string
+            value:
+              - climateengine/py-spfi-api
+          # Filter on the branch name (e.g. "main")
+          - path: body.ref
+            type: string
+            value: [refs/heads/main]
+  triggers:
+    # Trigger the Workflow stored in Kubernetes as a ConfigMap.
+    - template:
+        name: py-spfi-api-build
+        argoWorkflow:
+          operation: submit
+          source:
+            configmap:
+              name: py-spfi-api-build-wf
+              key: py-spfi-api-build-wf.yaml

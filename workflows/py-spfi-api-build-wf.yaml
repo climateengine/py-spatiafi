@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+
+metadata:
+  generateName: py-spfi-api-build-
+  namespace: argo
+
+spec:
+  workflowTemplateRef:
+    name: build-python
+  arguments:
+    parameters:
+      - name: repo-name
+        value: climateengine/py-spfi-api
+      - name: branch
+        value: main
