@@ -1,0 +1,15 @@
+# This is the kustomization file for the workflows in this directory.
+# It tells kustomize to generate a ConfigMap from the workflow yaml file
+
+# You probably don't need to change this file.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argo
+resources: [repo-sensor.yaml]
+
+configMapGenerator:
+  - name: py-spfi-api-build-wf
+    files: [py-spfi-api-build-wf.yaml]
+    options:
+      disableNameSuffixHash: true
