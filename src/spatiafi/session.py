@@ -35,3 +35,7 @@ def get_session(app_credentials=None):
     )
     client.fetch_token()
     return client
+
+
+if __name__ == "__main__":
+    get_session()

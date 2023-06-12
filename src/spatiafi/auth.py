@@ -21,7 +21,9 @@ def prompt_for_basic_auth_token():
     """Prompt for username and password and get an access token using HTTP Basic Authentication."""
     username = input("Username: ")
     password = input("Password: ")
-    return get_basic_auth_token(username, password)
+    token = get_basic_auth_token(username, password)
+    print("Got temporary access token")
+    return token
 
 
 def get_new_app_credentials(access_token=None):
@@ -37,6 +39,7 @@ def get_new_app_credentials(access_token=None):
     )
     response_data = response.json()
     store_app_credentials(response_data)
+    print(f"Got new App Credentials and saved them to: {app_credentials_file}")
     return response_data
 
 
@@ -67,3 +70,7 @@ def authenticate():
         app_credentials = get_new_app_credentials()
     load_app_credentials_into_env(app_credentials)
     return app_credentials
+
+
+if __name__ == "__main__":
+    authenticate()
