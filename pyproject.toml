@@ -23,7 +23,7 @@ select = ["C", "E", "F", "W"]
     "__init__.py" = ["E402", "F401"]
 
 [tool.setuptools_scm]
-write_to = "src/py_spfi_api/_version.py"
+write_to = "src/spatiafi/_version.py"
 # same as default regex except it makes "v" prefix mandatory (with the exception of 0.0, which is the default version)
 #  and no prefix before the version string is allowed
 tag_regex = "^(?P<version>(v\\d+(?:\\.\\d+){0,2}[^\\+]*)|(0.0))(?:\\+.*)?$"

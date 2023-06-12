@@ -1,38 +1,6 @@
 # Python SpatiaFi API
 Python library for interacting with the SpatiaFi API
 
----
-
-## Bootstraping a New Project (First run only)
-Because package versions are generated from git tags, the project must be part of a git repository.
-You will need to manually create the repository in GitHub and then run the following commands in the project folder:
-
-```bash
-git init
-git add .
-git commit -m "first commit"
-git branch -M main
-git remote add origin git@github.com:climateengine/py-spfi-api.git
-git push -u origin main
-```
-
-Now that the project is in a git repository, you can generate the first `requirements.txt` file by running:
-
-```bash
-./scripts/bootstrap_dev.sh
-```
-
-**Note:** `requirements.txt` is updated automatically by CircleCI when changes are pushed to the `main` branch.
-Generally, you should not need to update this file manually.
-
-### Make the First "Release"
-Create your first tag with `git tag v0.0.1` and push it with `git push --tags`
-This will trigger the CircleCI build and test general functionality of the project.
-
-**After running, you should remove this section from the README.md file.**
-
----
-
 ## Development
 
 ### Use a Virtual Environment
