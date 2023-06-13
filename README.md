@@ -1,5 +1,19 @@
 # Python SpatiaFi API
-Python library for interacting with the SpatiaFi API
+Python library for interacting with the SpatiaFi API.
+
+## Quickstart
+
+### Install the Package
+```shell
+pip install spatiafi
+```
+
+### Get Authenticated Session
+```python
+from spatiafi import get_session
+
+session = get_session()
+```
 
 ## Development
 
