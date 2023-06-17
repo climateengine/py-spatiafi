@@ -1,6 +1,8 @@
 # Python SpatiaFi API
 Python library for interacting with the SpatiaFi API.
 
+Also included is `gdal-auth` which is a CLI tool to help with GCP authentication for GDAL.
+
 ## Quickstart
 
 ### Install the Package
@@ -14,6 +16,13 @@ from spatiafi import get_session
 
 session = get_session()
 ```
+
+### Get help with `gdal-auth`
+```shell
+gdal-auth --help
+```
+
+---
 
 ## Development
 

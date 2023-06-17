@@ -1,3 +1,4 @@
+import spatiafi.gdal_auth
 from spatiafi.auth import authenticate
 from spatiafi.session import get_session
 
