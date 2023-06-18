@@ -124,10 +124,10 @@ def get_user_auth_env_vars(project=None):
 
 def get_gdal_env_vars(project=None) -> Dict[str, str]:
     if on_gcp():
-        logger.info("Running on GCP, using instance service account")
+        logger.debug("Running on GCP, using instance service account")
         env = {"CPL_MACHINE_IS_GCE": "YES"}
     else:
-        logger.info("Running outside GCP, using ADC")
+        logger.debug("Running outside GCP, using ADC")
         env = get_user_auth_env_vars(project=project)
 
     return env
