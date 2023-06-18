@@ -133,6 +133,13 @@ def get_gdal_env_vars(project=None) -> Dict[str, str]:
     return env
 
 
+def get_credentials(project=None) -> Tuple[google.auth.credentials.Credentials, str]:
+    if on_gcp():
+        return google.auth.default(quota_project_id=project)
+    else:
+        return get_user_credentials(project=project)
+
+
 if __name__ == "__main__":
     import pprint
 
