@@ -84,9 +84,7 @@ def get_user_credentials(
             info = json.load(f)
 
         quota_project_id = info.get("quota_project_id", None)
-        credentials = UserCredentials.from_authorized_user_info(
-            info=info, scopes=_GDAL_SCOPES
-        )
+        credentials = UserCredentials.from_authorized_user_info(info=info)
 
         if project and project != quota_project_id:
             credentials = credentials.with_quota_project(quota_project_id=project)
