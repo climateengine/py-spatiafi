@@ -24,6 +24,7 @@ _GDAL_SCOPES = [
     "https://www.googleapis.com/auth/devstorage.read_write",
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/accounts.reauth",
     "https://www.googleapis.com/auth/earthengine",
     "openid",
 ]
