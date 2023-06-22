@@ -9,6 +9,7 @@ credentials from `gcloud auth application-default login`).
 import json
 import logging
 import os
+import webbrowser
 from typing import Dict, Tuple
 
 import google.auth
@@ -19,6 +20,19 @@ from google.oauth2.credentials import Credentials as UserCredentials
 from platformdirs import user_config_dir
 
 logger = logging.getLogger(__name__)
+
+_OAUTH_CONFIG = {
+    "web": {
+        "client_id": "111941376227-3kjeanolo61g8t207od52epjinga0gdo.apps.googleusercontent.com",
+        "project_id": "ce-datasets",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret": "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",
+        "redirect_uris": ["https://auth.spatiafi.com/google_auth_helper/"],
+    }
+}
+
 
 _GDAL_SCOPES = [
     "https://www.googleapis.com/auth/devstorage.read_write",
@@ -74,6 +88,30 @@ def on_gcp():
     return False
 
 
+def oob_auth_flow(open_browser=True, project=None):
+    from google_auth_oauthlib.flow import Flow
+
+    # Create the flow using the client secrets file from the Google API console.
+    flow = Flow.from_client_config(
+        _OAUTH_CONFIG,
+        scopes=_GDAL_SCOPES,
+    )
+    flow.redirect_uri = _OAUTH_CONFIG["web"]["redirect_uris"][0]
+
+    auth_url, _ = flow.authorization_url(prompt="consent")
+    if open_browser:
+        webbrowser.open(auth_url, new=1, autoraise=True)
+
+    print("Please visit this URL to authorize this application: {}".format(auth_url))
+    code = input("Enter the authorization code: ")
+
+    flow.fetch_token(code=code)
+
+    credentials = flow.credentials
+
+    return credentials, flow.client_config["project_id"]
+
+
 def get_user_credentials(
     project=None,
 ) -> Tuple[google.auth.credentials.Credentials, str]:
@@ -92,9 +130,8 @@ def get_user_credentials(
             credentials.refresh(google.auth.transport.requests.Request())
         return credentials, project
 
-    credentials, project = google.auth.default(
-        quota_project_id=project, scopes=_GDAL_SCOPES
-    )
+    credentials, project = oob_auth_flow(project=project)
+
     credentials.refresh(
         google.auth.transport.requests.Request()
     )  # need to call once to get token
