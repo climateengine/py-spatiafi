@@ -60,6 +60,7 @@ pip-compile \
   --allow-unsafe \
   --strip-extras \
   --extra-index-url https://us-python.pkg.dev/ce-builder/python/simple/ \
+  --no-emit-index-url \
   --output-file requirements.txt \
   setup.cfg
 
@@ -70,6 +71,7 @@ pip-compile \
   --strip-extras \
   --extra dev \
   --extra-index-url https://us-python.pkg.dev/ce-builder/python/simple/ \
+  --no-emit-index-url \
   --pip-args=--constraint=requirements.txt \
   --output-file requirements-dev.txt \
   setup.cfg

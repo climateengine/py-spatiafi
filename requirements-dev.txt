@@ -4,8 +4,6 @@
 #
 #    scripts/gen_requirements.sh
 #
---extra-index-url https://us-python.pkg.dev/ce-builder/python/simple/
-
 anyio==3.7.0
     # via httpcore
 authlib==1.2.0
@@ -69,7 +67,9 @@ flake8==6.0.0
 flake8-pyproject==1.2.3
     # via spatiafi (setup.cfg)
 google-auth==2.19.1
-    # via keyrings-google-artifactregistry-auth
+    # via
+    #   keyrings-google-artifactregistry-auth
+    #   spatiafi (setup.cfg)
 h11==0.14.0
     # via httpcore
 httpcore==0.17.2
@@ -137,6 +137,7 @@ pkginfo==1.9.6
 platformdirs==3.5.3
     # via
     #   black
+    #   spatiafi (setup.cfg)
     #   tox
     #   virtualenv
 pluggy==1.0.0
