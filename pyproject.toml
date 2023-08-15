@@ -6,11 +6,6 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[tool.yamlfix]
-section_whitelines = 1
-explicit_start = false
-none_representation = "null"
-
 [tool.isort]
 profile = "black"
 

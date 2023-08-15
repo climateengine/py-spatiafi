@@ -4,7 +4,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 
 metadata:
-  name: py-spfi-api-github  # This should be unique across all Sensors.
+  name: py-spfi-api-github # This should be unique across all Sensors.
   namespace: argo
 
 spec:
