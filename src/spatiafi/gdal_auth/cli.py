@@ -71,7 +71,7 @@ def print_alias_instructions(project=None):
 
     with open(alias_file, "w") as f:
         f.write(bash_func + "\n")
-        f.write("export -f gdal_auth\n")
+        f.write("export -f gdal_auth_hook\n")
         for gdal_cmd in GDAL_CLI_TOOLS:
             alias_cmd = f'alias {gdal_cmd}="gdal_auth_hook && {gdal_cmd}"'
             f.write(alias_cmd + "\n")
