@@ -44,7 +44,7 @@ class AsyncQueue:
         self,
         task_function: Callable[[Dict[str, Any]], Any],
         n_cores: int = 8,
-        max_queue_size: int = 1000,
+        max_queue_size: int = 100,
         print_progress: int = 100,
     ):
         """
@@ -86,7 +86,7 @@ class AsyncQueue:
     def _retry_predicate(exc):
         if isinstance(exc, RequestError):
             return True
-        if isinstance(exc, HTTPStatusError) and exc.response.status_code == 429:
+        if isinstance(exc, HTTPStatusError):
             return True
         return False
 
@@ -108,11 +108,8 @@ class AsyncQueue:
             results = {}
 
             def on_error(exc):
-                nonlocal session
-
-                # if 5xx error, get a new session
-                if isinstance(exc, HTTPStatusError) and exc.response.status_code >= 500:
-                    session = loop.run_until_complete(get_async_session())
+                # print(type(exc), "Retrying", flush=True)
+                pass
 
             # Create a wrapper that awaits the task_function, retries on network exceptions,
             # and stores the result.  Stops the event loop if an exception is raised.
@@ -138,7 +135,7 @@ class AsyncQueue:
                         f"Exception running task number {task_number} with arg: {task_arg}",
                         flush=True,
                     )
-                    print(e, flush=True)
+                    print(type(e), "Not retrying anymore!", flush=True)
                     # loop.stop()
                     raise e
 
@@ -149,7 +146,7 @@ class AsyncQueue:
                 def task_callback(task: Task):
                     nonlocal err
                     if task.exception() is not None:
-                        print(task.exception(), flush=True)
+                        # print(task.exception(), flush=True)
                         # Cancel all tasks
                         for remaining_task in background_tasks:
                             remaining_task.cancel()

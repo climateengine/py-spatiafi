@@ -1,5 +1,6 @@
 import os
 
+import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from authlib.integrations.requests_client import OAuth2Session
 from authlib.oauth2.rfc7523 import ClientSecretJWT
@@ -77,6 +78,8 @@ async def get_async_session(app_credentials=None):
         token_endpoint_auth_method=ClientSecretJWT(
             "https://auth.spatiafi.com/api/v1/auth/jwt/token"
         ),
+        limits=httpx.Limits(max_connections=None),
+        timeout=httpx.Timeout(5.0, connect=1.0),
     )
     await session.fetch_token()
     return session
