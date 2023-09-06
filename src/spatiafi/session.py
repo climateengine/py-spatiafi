@@ -21,7 +21,16 @@ def load_or_authenticate():
 
 
 def get_session(app_credentials=None):
-    """Get an automatically-refreshing OAuth2 session (requests, sync) for the SpatiaFI API."""
+    """
+    Get an automatically-refreshing OAuth2 session (requests, sync) for the SpatiaFI API.
+
+    If app_credentials are provided, they should be a dict with keys "client_id" and "client_secret".
+    If app_credentials are not provided,
+
+      * First attempt to load them from the environment variables SPATIAFI_CLIENT_ID and SPATIAFI_CLIENT_SECRET
+      * Check if they are stored in the default location ~/.spatiafi/app_credentials.json
+      * If not, authenticate to get new app credentials and store them in the default location
+    """
 
     if app_credentials is None:
         app_credentials = load_or_authenticate()
@@ -43,7 +52,16 @@ def get_session(app_credentials=None):
 
 
 async def get_async_session(app_credentials=None):
-    """Get an automatically-refreshing async OAuth2 session for the SpatiaFI API."""
+    """
+    Get an automatically-refreshing async OAuth2 session for the SpatiaFI API.
+
+    If app_credentials are provided, they should be a dict with keys "client_id" and "client_secret".
+    If app_credentials are not provided,
+
+      * First attempt to load them from the environment variables SPATIAFI_CLIENT_ID and SPATIAFI_CLIENT_SECRET
+      * Check if they are stored in the default location ~/.spatiafi/app_credentials.json
+      * If not, authenticate to get new app credentials and store them in the default location
+    """
 
     if app_credentials is None:
         app_credentials = load_or_authenticate()
