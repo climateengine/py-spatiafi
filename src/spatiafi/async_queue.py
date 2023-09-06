@@ -6,6 +6,7 @@ import asyncio
 import logging
 import multiprocessing as mp
 import time
+from asyncio import Task
 from typing import Any, Callable, Dict
 
 from google.api_core import retry_async
@@ -42,6 +43,7 @@ class AsyncQueue:
     def __init__(
         self,
         task_function: Callable[[Dict[str, Any]], Any],
+        n_cores: int = 8,
         max_queue_size: int = 1000,
         print_progress: int = 100,
     ):
@@ -56,11 +58,13 @@ class AsyncQueue:
 
         Args:
             task_function: An async function that takes a single argument and returns a single, serializable object.
+            n_cores: The number of cores to use. Increasing this will ena
             max_queue_size: The maximum number of tasks to queue.  If the queue is full, the main process will block
                 until there is space in the queue.
             print_progress: Print a message every `print_progress` tasks (roughly).  Set to 0 to disable printing.
         """
         self.task_function = task_function
+        self.n_cores = n_cores
         self.max_queue_size = max_queue_size
 
         # ensure print_progress is an int and is positive
@@ -103,12 +107,22 @@ class AsyncQueue:
             # Create results store
             results = {}
 
+            def on_error(exc):
+                nonlocal session
+
+                # if 5xx error, get a new session
+                if isinstance(exc, HTTPStatusError) and exc.response.status_code >= 500:
+                    session = loop.run_until_complete(get_async_session())
+
             # Create a wrapper that awaits the task_function, retries on network exceptions,
             # and stores the result.  Stops the event loop if an exception is raised.
             async def wrapped_task(task_number, task_arg):
                 try:
                     response = await retry_async.AsyncRetry(
-                        predicate=AsyncQueue._retry_predicate, timeout=None
+                        predicate=AsyncQueue._retry_predicate,
+                        maximum=1,
+                        timeout=300,
+                        on_error=on_error,
                     )(self.task_function)(task_arg, session=session)
                     results[task_number] = response
 
@@ -120,14 +134,36 @@ class AsyncQueue:
                         print(f"Finished task {task_number}", flush=True)
 
                 except Exception as e:
-                    loop.stop()
+                    print(
+                        f"Exception running task number {task_number} with arg: {task_arg}",
+                        flush=True,
+                    )
                     print(e, flush=True)
+                    # loop.stop()
                     raise e
 
             async def main():
                 background_tasks = set()
+                err = None
+
+                def task_callback(task: Task):
+                    nonlocal err
+                    if task.exception() is not None:
+                        print(task.exception(), flush=True)
+                        # Cancel all tasks
+                        for remaining_task in background_tasks:
+                            remaining_task.cancel()
+                        err = task.exception()
+                    else:
+                        # To prevent keeping references to finished tasks forever,
+                        # make each task remove its own reference from the set after
+                        # completion.
+                        background_tasks.discard(task)
 
                 while True:
+                    if err is not None:
+                        break
+
                     # get a work_item from the queue
                     # work_item is a tuple of (task_number, task) so that we can return the results in order
                     work_item = queue.get()
@@ -151,14 +187,14 @@ class AsyncQueue:
                     # destroying the task
                     background_tasks.add(task)
 
-                    # To prevent keeping references to finished tasks forever,
-                    # make each task remove its own reference from the set after
-                    # completion.
-                    task.add_done_callback(background_tasks.discard)
+                    task.add_done_callback(task_callback)
 
                     # This is a do-nothing call that allows background_tasks to run tasks while we continue to
                     # iterate over the queue and add more tasks
                     await asyncio.sleep(0.0)
+
+                if err is not None:
+                    raise err
 
             # Start the event loop and run the main function until it is finished
             loop.run_until_complete(main())
@@ -177,17 +213,20 @@ class AsyncQueue:
         self._start_time = time.time()
 
         # Create the queue and worker process
-        self._queue = mp.Manager().Queue(maxsize=self.max_queue_size)
-        self._worker_process = mp.Process(
-            target=self._get_worker(), args=(self._queue,)
-        )
+        self._queue = [
+            mp.Manager().Queue(maxsize=self.max_queue_size) for _ in range(self.n_cores)
+        ]
+        self._worker_process = [
+            mp.Process(target=self._get_worker(), args=(queue,))
+            for queue in self._queue
+        ]
 
         # Start the worker process
-        self._worker_process.start()
+        [worker_process.start() for worker_process in self._worker_process]
         self._running = True
 
         print(
-            f"Subprocess and async loop started: {time.time() - self._start_time}s",
+            f"Subprocesses and async loop started: {time.time() - self._start_time}s",
             flush=True,
         )
 
@@ -197,13 +236,13 @@ class AsyncQueue:
             return
 
         # Put None into the queue to signal that we are done
-        self._queue.put(None)
+        [queue.put(None) for queue in self._queue]
 
         # Wait for the worker process to finish
-        self._worker_process.join()
+        [worker_process.join() for worker_process in self._worker_process]
 
         print(
-            f"Subprocess and async tasks finished: {time.time() - self._start_time}s",
+            f"Subprocess and {self._task_count} async tasks finished: {time.time() - self._start_time}s",
             flush=True,
         )
         self._running = False
@@ -218,9 +257,6 @@ class AsyncQueue:
         if exc_type is not None:
             return False
 
-    def __del__(self):
-        self.stop()
-
     @property
     def results(self):
         """
@@ -230,7 +266,12 @@ class AsyncQueue:
         """
         if not self._results:
             self.stop()
-            self._results = self._queue.get()
+            self._results = {}
+            for queue in self._queue:
+                # get results from queue
+                results = queue.get()
+                # merge results into self._results
+                self._results.update(results)
             # results is a dict. return a list of values, sorted by key (task_number)
             self._results = [self._results[key] for key in sorted(self._results.keys())]
         return self._results
@@ -244,5 +285,7 @@ class AsyncQueue:
             raise RuntimeError("AsyncQueue is not running")
 
         work_item = (self._task_count, arg)
-        self._queue.put(work_item)
+        # Put the work_item into a queue
+        queue = self._queue[self._task_count % self.n_cores]
+        queue.put(work_item)
         self._task_count += 1

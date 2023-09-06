@@ -66,7 +66,7 @@ def generate_random_coordinates(num_points=1):
 
 def test_async_queue_with_uk_points():
     # Generate 1000 random coordinates
-    coordinates = generate_random_coordinates(10)
+    coordinates = generate_random_coordinates(10000)
 
     # Create a DataFrame
     df = pd.DataFrame(coordinates, columns=["lat", "lon"])
@@ -90,4 +90,11 @@ def test_async_queue_with_uk_points():
 
     # Get the results
     results = async_queue.results
-    print(f"Results: {results}", flush=True)
+
+    print(f"Got {len(results)} results")
+    print("First 10 results:")
+    print(results[:10])
+
+
+if __name__ == "__main__":
+    test_async_queue_with_uk_points()
