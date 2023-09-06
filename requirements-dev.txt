@@ -66,13 +66,18 @@ flake8==6.0.0
     #   spatiafi (setup.cfg)
 flake8-pyproject==1.2.3
     # via spatiafi (setup.cfg)
+google-api-core==2.11.1
+    # via spatiafi (setup.cfg)
 google-auth==2.19.1
     # via
+    #   google-api-core
     #   google-auth-oauthlib
     #   keyrings-google-artifactregistry-auth
     #   spatiafi (setup.cfg)
 google-auth-oauthlib==1.0.0
     # via spatiafi (setup.cfg)
+googleapis-common-protos==1.60.0
+    # via google-api-core
 h11==0.14.0
     # via httpcore
 httpcore==0.17.2
@@ -152,6 +157,10 @@ pluggy==1.0.0
     #   tox
 pre-commit==3.3.2
     # via spatiafi (setup.cfg)
+protobuf==4.24.2
+    # via
+    #   google-api-core
+    #   googleapis-common-protos
 pyasn1==0.5.0
     # via
     #   pyasn1-modules
@@ -186,6 +195,7 @@ readme-renderer==37.3
     # via twine
 requests==2.31.0
     # via
+    #   google-api-core
     #   keyrings-google-artifactregistry-auth
     #   requests-oauthlib
     #   requests-toolbelt
