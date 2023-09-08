@@ -17,6 +17,115 @@ from spatiafi.session import get_async_session
 logger = logging.getLogger(__name__)
 
 
+def worker(queue, task_function, print_progress=100, start_time=None):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    # Create client
+    session = loop.run_until_complete(get_async_session())
+
+    # Create results store
+    results = {}
+
+    def on_error(exc):
+        # print(type(exc), "Retrying", flush=True)
+        pass
+
+    # Create a wrapper that awaits the task_function, retries on network exceptions,
+    # and stores the result.  Stops the event loop if an exception is raised.
+    async def wrapped_task(task_number, task_arg):
+        try:
+            response = await retry_async.AsyncRetry(
+                predicate=AsyncQueue._retry_predicate,
+                maximum=1,
+                timeout=300,
+                on_error=on_error,
+            )(task_function)(task_arg, session=session)
+            results[task_number] = response
+
+            if (
+                print_progress > 0
+                and task_number > 0
+                and task_number % print_progress == 0
+            ):
+                print(f"Finished task {task_number}", flush=True)
+
+        except Exception as e:
+            print(
+                f"Exception running task number {task_number} with arg: {task_arg}",
+                flush=True,
+            )
+            print(type(e), "Not retrying anymore!", flush=True)
+            # loop.stop()
+            raise e
+
+    async def main():
+        background_tasks = set()
+        err = None
+
+        def task_callback(task: Task):
+            nonlocal err
+            if task.exception() is not None:
+                # print(task.exception(), flush=True)
+                # Cancel all tasks
+                for remaining_task in background_tasks:
+                    remaining_task.cancel()
+                err = task.exception()
+            else:
+                # To prevent keeping references to finished tasks forever,
+                # make each task remove its own reference from the set after
+                # completion.
+                background_tasks.discard(task)
+
+        while True:
+            if err is not None:
+                break
+
+            # get a work_item from the queue
+            # work_item is a tuple of (task_number, task) so that we can return the results in order
+            work_item = queue.get()
+            # print(f"Got work_item {work_item}", flush=True)
+
+            # If work_item is None, then we wait for all tasks to finish and then break
+            if work_item is None:
+                print(
+                    f"Waiting for {len(background_tasks)} async tasks to finish in subprocess"
+                    + f": {time.time() - start_time}s"
+                    if start_time is not None
+                    else "",
+                    flush=True,
+                )
+                await asyncio.gather(*background_tasks)
+                break  # break out of the while True loop
+
+            # Create an asyncio task from the work_item
+            task = asyncio.create_task(wrapped_task(*work_item))
+
+            # Add task to the set.
+            # Note: This creates a strong reference. Without this, we risk the garbage collector
+            # destroying the task
+            background_tasks.add(task)
+
+            task.add_done_callback(task_callback)
+
+            # This is a do-nothing call that allows background_tasks to run tasks while we continue to
+            # iterate over the queue and add more tasks
+            await asyncio.sleep(0.0)
+
+        if err is not None:
+            raise err
+
+    # Start the event loop and run the main function until it is finished
+    loop.run_until_complete(main())
+
+    # main is finished.  Close the session and the event loop.
+    loop.close()
+
+    # Put the results into the queue. At this point, the queue should be empty.
+    assert queue.empty()
+    queue.put(results)
+
+
 class AsyncQueue:
     """
     An efficient asynchronous worker queue, for making many requests to the SpatiaFI API.
@@ -90,121 +199,6 @@ class AsyncQueue:
             return True
         return False
 
-    def _get_worker(self):
-        """
-        Get a worker process.
-
-        This is a generator that yields a worker process.
-        """
-
-        def worker(queue):
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-            # Create client
-            session = loop.run_until_complete(get_async_session())
-
-            # Create results store
-            results = {}
-
-            def on_error(exc):
-                # print(type(exc), "Retrying", flush=True)
-                pass
-
-            # Create a wrapper that awaits the task_function, retries on network exceptions,
-            # and stores the result.  Stops the event loop if an exception is raised.
-            async def wrapped_task(task_number, task_arg):
-                try:
-                    response = await retry_async.AsyncRetry(
-                        predicate=AsyncQueue._retry_predicate,
-                        maximum=1,
-                        timeout=300,
-                        on_error=on_error,
-                    )(self.task_function)(task_arg, session=session)
-                    results[task_number] = response
-
-                    if (
-                        self.print_progress > 0
-                        and task_number > 0
-                        and task_number % self.print_progress == 0
-                    ):
-                        print(f"Finished task {task_number}", flush=True)
-
-                except Exception as e:
-                    print(
-                        f"Exception running task number {task_number} with arg: {task_arg}",
-                        flush=True,
-                    )
-                    print(type(e), "Not retrying anymore!", flush=True)
-                    # loop.stop()
-                    raise e
-
-            async def main():
-                background_tasks = set()
-                err = None
-
-                def task_callback(task: Task):
-                    nonlocal err
-                    if task.exception() is not None:
-                        # print(task.exception(), flush=True)
-                        # Cancel all tasks
-                        for remaining_task in background_tasks:
-                            remaining_task.cancel()
-                        err = task.exception()
-                    else:
-                        # To prevent keeping references to finished tasks forever,
-                        # make each task remove its own reference from the set after
-                        # completion.
-                        background_tasks.discard(task)
-
-                while True:
-                    if err is not None:
-                        break
-
-                    # get a work_item from the queue
-                    # work_item is a tuple of (task_number, task) so that we can return the results in order
-                    work_item = queue.get()
-                    # print(f"Got work_item {work_item}", flush=True)
-
-                    # If work_item is None, then we wait for all tasks to finish and then break
-                    if work_item is None:
-                        print(
-                            f"Waiting for {len(background_tasks)} async tasks to finish in subprocess: "
-                            f"{time.time() - self._start_time}s",
-                            flush=True,
-                        )
-                        await asyncio.gather(*background_tasks)
-                        break  # break out of the while True loop
-
-                    # Create an asyncio task from the work_item
-                    task = asyncio.create_task(wrapped_task(*work_item))
-
-                    # Add task to the set.
-                    # Note: This creates a strong reference. Without this, we risk the garbage collector
-                    # destroying the task
-                    background_tasks.add(task)
-
-                    task.add_done_callback(task_callback)
-
-                    # This is a do-nothing call that allows background_tasks to run tasks while we continue to
-                    # iterate over the queue and add more tasks
-                    await asyncio.sleep(0.0)
-
-                if err is not None:
-                    raise err
-
-            # Start the event loop and run the main function until it is finished
-            loop.run_until_complete(main())
-
-            # main is finished.  Close the session and the event loop.
-            loop.close()
-
-            # Put the results into the queue. At this point, the queue should be empty.
-            assert queue.empty()
-            queue.put(results)
-
-        return worker
-
     def start(self):
         """Start the multiprocessing worker process."""
         self._start_time = time.time()
@@ -214,7 +208,15 @@ class AsyncQueue:
             mp.Manager().Queue(maxsize=self.max_queue_size) for _ in range(self.n_cores)
         ]
         self._worker_process = [
-            mp.Process(target=self._get_worker(), args=(queue,))
+            mp.Process(
+                target=worker,
+                kwargs={
+                    "queue": queue,
+                    "task_function": self.task_function,
+                    "print_progress": self.print_progress,
+                    "start_time": self._start_time,
+                },
+            )
             for queue in self._queue
         ]
 
