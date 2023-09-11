@@ -10,12 +10,14 @@ Also included is `gdal-auth` which is a CLI tool to help with GCP authentication
 pip install spatiafi
 ```
 
+
 ### Get Authenticated Session
 ```python
 from spatiafi import get_session
 
 session = get_session()
 ```
+
 
 ### Get help with `gdal-auth`
 ```shell
@@ -33,9 +35,11 @@ To create a new virtual environment:
   * Open the project in PyCharm and select `File > Settings > Project: spfi-api > Python Interpreter`.
   * In the top right corner of the window, click the gear icon and select `Add Interpreter > Add Local Interpreter...`
 
+
 ### Mark `src` as a Source Root
 In PyCharm, mark the `src` folder as a source root. This will allow you to import modules from the `src` folder without using relative imports.
 Right-click on the `src` folder and select `Mark Directory as > Sources Root`.
+
 
 ### Bootstrap the Development Environment
 Run `./scripts/bootstrap_dev.sh` to install the package and development dependencies.
@@ -44,6 +48,22 @@ This will also set up access to our private PyPI server, generate the first `req
 and install `pre-commit` hooks.
 
 **Protip:** This script can be run at any time if you're afraid you've messed up your environment.
+
+
+### Running the tests
+Tests can be run locally via the `scripts/test.sh` script:
+
+```
+./scripts/test.sh
+```
+
+All additional arguments to that script will be passed to PyTest which allows
+you to do things such as run a single test:
+
+```
+./scripts/test.sh -k test_async_queue
+```
+
 
 ### Manage Dependencies in `setup.cfg`
 Dependencies are managed in `setup.cfg` using the `install_requires` and `extras_require` sections.
@@ -61,12 +81,14 @@ To add a new dependency:
 
 If the dependency is only needed for development, add it to the `dev` section of `extras_require` in `setup.cfg`.
 
+
 ### Building Docker Images Locally
 **tl;dr:** run `./scripts/build_docker.sh`.
 
 We need to inject a GCP access token into the Docker build to access private PyPI packages.
 This requires using BuildKit (enabled by default in recent versions of Docker), and passing the token as a build
 argument.
+
 
 ## `pre-commit` Hooks
 This project uses `pre-commit` to run a series of checks before each git commit.
@@ -77,16 +99,19 @@ To format all your code manually, run `pre-commit run --all-files`.
 
 **Note:** If your code does not pass the `pre-commit` checks, automatic builds may fail.
 
+
 ### Use `pip-sync` to Update Dependencies
 To update local dependencies, run `pip-sync` in the virtual environment.
 This will make sure your virtual environment is in sync with the `requirements.txt` file,
 including uninstalling any packages that are not in the `requirements.txt` file.
+
 
 ### Versions
 The project uses [semantic versioning](https://semver.org/).
 
 Package versions are automatically generated from git tags.
 Create your first tag with `git tag 0.1.0` and push it with `git push --tags`
+
 
 ## Installation
 **tl;dr:** `./scripts/install_package.sh`
