@@ -52,7 +52,7 @@ def get_session(app_credentials=None):
     return session
 
 
-async def get_async_session(app_credentials=None):
+async def get_async_session(app_credentials=None, max_connections_limit=None):
     """
     Get an automatically-refreshing async OAuth2 session for the SpatiaFI API.
 
@@ -78,7 +78,7 @@ async def get_async_session(app_credentials=None):
         token_endpoint_auth_method=ClientSecretJWT(
             "https://auth.spatiafi.com/api/v1/auth/jwt/token"
         ),
-        limits=httpx.Limits(max_connections=None),
+        limits=httpx.Limits(max_connections=max_connections_limit),
         timeout=httpx.Timeout(5.0, connect=1.0),
     )
     await session.fetch_token()

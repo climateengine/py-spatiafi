@@ -22,7 +22,7 @@ def worker(queue, task_function, print_progress=100, start_time=None):
     asyncio.set_event_loop(loop)
 
     # Create client
-    session = loop.run_until_complete(get_async_session())
+    session = loop.run_until_complete(get_async_session(max_connections_limit=200))
 
     # Create results store
     results = {}

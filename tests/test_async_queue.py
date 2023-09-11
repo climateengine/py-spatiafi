@@ -33,7 +33,7 @@ async def get_point(item_id, row, session=None):
     Note: This is *not* a valid task function for AsyncQueue, because it takes two arguments.
     """
     if session is None:
-        session = await get_async_session()
+        session = await get_async_session(max_connections_limit=200)
 
     # Create the url.  Note that this assumes that the series/dict has indices "lat" and "lon".
     url = (
