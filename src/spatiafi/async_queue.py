@@ -81,6 +81,10 @@ def worker(queue, task_function, print_progress=100, start_time=None):
             if err is not None:
                 break
 
+            # Wait for the number of background tasks to be less than 1000 before continuing to add new tasks.
+            while len(background_tasks) > 1000:
+                await asyncio.sleep(0.1)
+
             # get a work_item from the queue
             # work_item is a tuple of (task_number, task) so that we can return the results in order
             work_item = queue.get()
