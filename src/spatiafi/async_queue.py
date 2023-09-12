@@ -17,7 +17,9 @@ from spatiafi.session import get_async_session
 logger = logging.getLogger(__name__)
 
 
-def worker(queue, task_function, print_progress=100, start_time=None):
+def worker(
+    queue, task_function, max_in_flight=1000, print_progress=100, start_time=None
+):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
@@ -112,6 +114,10 @@ def worker(queue, task_function, print_progress=100, start_time=None):
             # iterate over the queue and add more tasks
             await asyncio.sleep(0.0)
 
+            # Wait for len(background_tasks) to be less than max_in_flight before continuing the loop
+            while len(background_tasks) > max_in_flight:
+                await asyncio.sleep(0.1)
+
         if err is not None:
             raise err
 
@@ -153,7 +159,8 @@ class AsyncQueue:
         self,
         task_function: Callable[[Dict[str, Any]], Any],
         n_cores: int = 8,
-        max_queue_size: int = 100,
+        max_in_flight: int = 1000,
+        max_queue_size: int = 1000,
         print_progress: int = 100,
     ):
         """
@@ -167,13 +174,17 @@ class AsyncQueue:
 
         Args:
             task_function: An async function that takes a single argument and returns a single, serializable object.
-            n_cores: The number of cores to use. Increasing this will ena
-            max_queue_size: The maximum number of tasks to queue.  If the queue is full, the main process will block
-                until there is space in the queue.
+            n_cores: The number of cores to use for multiprocessing.
+            max_in_flight: The maximum number of tasks to run at once. This is roughly equivalent to the number of
+                concurrent requests that will be made.
+            max_queue_size: The maximum number of tasks to hold in the queue.  If the queue is full, the main function
+                calling enqueue will block until there is space in the queue.
             print_progress: Print a message every `print_progress` tasks (roughly).  Set to 0 to disable printing.
+                Note that this will print from multiple processes, so the messages may be interleaved.
         """
         self.task_function = task_function
         self.n_cores = n_cores
+        self.max_in_flight = max_in_flight
         self.max_queue_size = max_queue_size
 
         # ensure print_progress is an int and is positive
@@ -213,6 +224,7 @@ class AsyncQueue:
                 kwargs={
                     "queue": queue,
                     "task_function": self.task_function,
+                    "max_in_flight": self.max_in_flight // self.n_cores,
                     "print_progress": self.print_progress,
                     "start_time": self._start_time,
                 },

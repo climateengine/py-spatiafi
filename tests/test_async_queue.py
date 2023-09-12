@@ -69,7 +69,7 @@ def generate_random_coordinates(num_points=1):
 
 def test_async_queue_with_uk_points():
     # Generate 1000 random coordinates
-    coordinates = generate_random_coordinates(10000)
+    coordinates = generate_random_coordinates(1000000)
 
     # Create a DataFrame
     df = pd.DataFrame(coordinates, columns=["lat", "lon"])
