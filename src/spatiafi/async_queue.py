@@ -40,7 +40,7 @@ def worker(
             response = await retry_async.AsyncRetry(
                 predicate=AsyncQueue._retry_predicate,
                 maximum=1,
-                timeout=300,
+                timeout=30,
                 on_error=on_error,
             )(task_function)(task_arg, session=session)
             results[task_number] = response
@@ -58,7 +58,6 @@ def worker(
                 flush=True,
             )
             print(type(e), "Not retrying anymore!", flush=True)
-            # loop.stop()
             raise e
 
     async def main():
@@ -207,6 +206,9 @@ class AsyncQueue:
         if isinstance(exc, RequestError):
             return True
         if isinstance(exc, HTTPStatusError):
+            if exc.response.status_code == 404:
+                # 404 is a valid response, so don't retry
+                return False
             return True
         return False
 

@@ -59,6 +59,10 @@ def on_gcp():
     if _on_gcp is not None:
         return _on_gcp
 
+    if os.environ.get("CPL_MACHINE_IS_GCE") == "YES":
+        _on_gcp = True
+        return True
+
     if os.path.exists(on_gcp_file):
         with open(on_gcp_file, "r") as f:
             _on_gcp = f.read().strip() == "True"

@@ -80,6 +80,7 @@ async def get_async_session(app_credentials=None):
         ),
         limits=httpx.Limits(max_connections=None),
         timeout=httpx.Timeout(5.0, connect=1.0),
+        transport=httpx.AsyncHTTPTransport(retries=3),
     )
     await session.fetch_token()
     return session
