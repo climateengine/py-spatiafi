@@ -40,7 +40,7 @@ def worker(
             response = await retry_async.AsyncRetry(
                 predicate=AsyncQueue._retry_predicate,
                 maximum=1,
-                timeout=30,
+                timeout=300,
                 on_error=on_error,
             )(task_function)(task_arg, session=session)
             results[task_number] = response
@@ -67,7 +67,6 @@ def worker(
         def task_callback(task: Task):
             nonlocal err
             if task.exception() is not None:
-                # print(task.exception(), flush=True)
                 # Cancel all tasks
                 for remaining_task in background_tasks:
                     remaining_task.cancel()

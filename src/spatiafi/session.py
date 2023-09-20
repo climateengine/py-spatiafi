@@ -79,7 +79,7 @@ async def get_async_session(app_credentials=None):
             "https://auth.spatiafi.com/api/v1/auth/jwt/token"
         ),
         limits=httpx.Limits(max_connections=None),
-        timeout=httpx.Timeout(5.0, connect=1.0),
+        timeout=httpx.Timeout(5.0),
         transport=httpx.AsyncHTTPTransport(retries=3),
     )
     await session.fetch_token()
