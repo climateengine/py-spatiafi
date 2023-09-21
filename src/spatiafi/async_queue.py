@@ -7,10 +7,10 @@ import logging
 import multiprocessing as mp
 import time
 from asyncio import Task
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from google.api_core import retry_async
-from httpx import HTTPStatusError, RequestError
+from httpx import HTTPStatusError
 
 from spatiafi.session import get_async_session
 
@@ -39,8 +39,8 @@ def worker(
         try:
             response = await retry_async.AsyncRetry(
                 predicate=AsyncQueue._retry_predicate,
-                maximum=1,
-                timeout=300,
+                maximum=5,
+                timeout=600,
                 on_error=on_error,
             )(task_function)(task_arg, session=session)
             results[task_number] = response
@@ -51,6 +51,10 @@ def worker(
                 and task_number % print_progress == 0
             ):
                 print(f"Finished task {task_number}", flush=True)
+
+        except asyncio.exceptions.CancelledError:
+            # We can ignore this exception.  It is raised when the task is cancelled.
+            pass
 
         except Exception as e:
             print(
@@ -156,8 +160,8 @@ class AsyncQueue:
     def __init__(
         self,
         task_function: Callable[[Dict[str, Any]], Any],
-        n_cores: int = 8,
-        max_in_flight: int = 1000,
+        n_cores: Optional[int] = None,
+        max_in_flight: Optional[int] = None,
         max_queue_size: int = 1000,
         print_progress: int = 100,
     ):
@@ -180,10 +184,11 @@ class AsyncQueue:
             print_progress: Print a message every `print_progress` tasks (roughly).  Set to 0 to disable printing.
                 Note that this will print from multiple processes, so the messages may be interleaved.
         """
-        self.task_function = task_function
-        self.n_cores = n_cores
-        self.max_in_flight = max_in_flight
-        self.max_queue_size = max_queue_size
+
+        if n_cores is None:
+            n_cores = mp.cpu_count()
+        if max_in_flight is None:
+            max_in_flight = n_cores * 90
 
         # ensure print_progress is an int and is positive
         if type(print_progress) is not int:
@@ -191,6 +196,10 @@ class AsyncQueue:
         if print_progress < 0:
             raise ValueError("print_progress must be positive")
 
+        self.task_function = task_function
+        self.n_cores = n_cores
+        self.max_in_flight = max_in_flight
+        self.max_queue_size = max_queue_size
         self.print_progress = print_progress
 
         self._running = False
@@ -202,14 +211,11 @@ class AsyncQueue:
 
     @staticmethod
     def _retry_predicate(exc):
-        if isinstance(exc, RequestError):
-            return True
-        if isinstance(exc, HTTPStatusError):
-            if exc.response.status_code == 404:
-                # 404 is a valid response, so don't retry
-                return False
-            return True
-        return False
+        if isinstance(exc, HTTPStatusError) and (exc.response.status_code < 500):
+            # 4xx is a valid response, so don't retry
+            return False
+        # Retry on all other exceptions
+        return True
 
     def start(self):
         """Start the multiprocessing worker process."""
