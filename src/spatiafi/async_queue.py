@@ -186,7 +186,7 @@ class AsyncQueue:
         """
 
         if n_cores is None:
-            n_cores = mp.cpu_count()
+            n_cores = min(mp.cpu_count(), 4)
         if max_in_flight is None:
             max_in_flight = n_cores * 90
 

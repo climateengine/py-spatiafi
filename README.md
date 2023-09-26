@@ -140,6 +140,13 @@ async def get_point(point, session=None):
 
 ### Create an AsyncQueue and Enqueue Tasks
 
+`AsyncQueue` takes a task function as an argument, and launches multiple instances of that task in parallel.
+The `AsyncQueue.enqueue` method takes a _single argument_ is used to add tasks to the queue.
+The `AsyncQueue.results` property will return a list of results in the order they were enqueued.
+
+When starting the `AsyncQueue`, it is **highly recommended** that you specify the number of workers/CPUs to use
+using the `n_cores` argument. The default is to use the minimum of 4 and the number of CPUs on the machine.
+
 This queue is designed to be used with the `with` statement. Entering the `with` statement will start the
 subprocess and event loop.  Exiting the `with` statement will wait for all tasks to finish and then stop the
 event loop and subprocess.
