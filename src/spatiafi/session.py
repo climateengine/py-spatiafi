@@ -4,6 +4,8 @@ import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from authlib.integrations.requests_client import OAuth2Session
 from authlib.oauth2.rfc7523 import ClientSecretJWT
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 from spatiafi import authenticate
 
@@ -39,6 +41,15 @@ def get_session(app_credentials=None):
     client_id = app_credentials["client_id"]
     client_secret = app_credentials["client_secret"]
 
+    # Define the retry strategy
+    retry_strategy = Retry(
+        total=3,  # Maximum number of retries
+        status_forcelist=[500, 502, 503, 504],  # HTTP status codes to retry on
+    )
+    # Create an HTTP adapter with the retry strategy and mount it to session
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+
+    # Create a new session object
     session = OAuth2Session(
         client_id,
         client_secret,
@@ -48,6 +59,8 @@ def get_session(app_credentials=None):
             "https://auth.spatiafi.com/api/v1/auth/jwt/token"
         ),
     )
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
     session.fetch_token()
     return session
 
