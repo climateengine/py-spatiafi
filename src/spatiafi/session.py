@@ -1,5 +1,3 @@
-import os
-
 import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 from authlib.integrations.requests_client import OAuth2Session
@@ -8,19 +6,6 @@ from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
 from spatiafi import authenticate
-
-
-def load_or_authenticate():
-    """Load credentials from environment variables or authenticate to get them."""
-    if os.environ.get("SPATIAFI_CLIENT_ID") and os.environ.get(
-        "SPATIAFI_CLIENT_SECRET"
-    ):
-        return {
-            "client_id": os.environ["SPATIAFI_CLIENT_ID"],
-            "client_secret": os.environ["SPATIAFI_CLIENT_SECRET"],
-        }
-    else:
-        return authenticate()
 
 
 def get_session(app_credentials=None):
@@ -36,7 +21,7 @@ def get_session(app_credentials=None):
     """
 
     if app_credentials is None:
-        app_credentials = load_or_authenticate()
+        app_credentials = authenticate()
 
     client_id = app_credentials["client_id"]
     client_secret = app_credentials["client_secret"]
@@ -78,7 +63,7 @@ async def get_async_session(app_credentials=None):
     """
 
     if app_credentials is None:
-        app_credentials = load_or_authenticate()
+        app_credentials = authenticate()
 
     client_id = app_credentials["client_id"]
     client_secret = app_credentials["client_secret"]
