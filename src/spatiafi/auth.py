@@ -1,3 +1,4 @@
+import getpass
 import json
 import os
 
@@ -19,10 +20,17 @@ def get_basic_auth_token(username, password):
 
 def prompt_for_basic_auth_token():
     """Prompt for username and password and get an access token using HTTP Basic Authentication."""
+    print(
+        "SpatiaFi App Credentials not found. Please authenticate to get new credentials."
+    )
+    print(
+        "Note: You can also set the environment variables SPATIAFI_CLIENT_ID and SPATIAFI_CLIENT_SECRET."
+    )
+    print("")
+    print("Enter your SpatiaFi username and password:")
     username = input("Username: ")
-    password = input("Password: ")
+    password = getpass.getpass()
     token = get_basic_auth_token(username, password)
-    print("Got temporary access token")
     return token
 
 
@@ -49,7 +57,7 @@ def store_app_credentials(app_credentials):
         json.dump(app_credentials, f)
 
 
-def load_app_credentials():
+def load_app_credentials_from_file():
     """Load app credentials from a file."""
     with open(app_credentials_file, "r") as f:
         app_credentials = json.load(f)
@@ -63,9 +71,16 @@ def load_app_credentials_into_env(app_credentials):
 
 
 def authenticate():
-    """Try to load app credentials from a file, otherwise get new app credentials."""
+    """Try to load app credentials from env var, or disk, otherwise get new app credentials."""
+    if os.environ.get("SPATIAFI_CLIENT_ID") and os.environ.get(
+        "SPATIAFI_CLIENT_SECRET"
+    ):
+        return {
+            "client_id": os.environ["SPATIAFI_CLIENT_ID"],
+            "client_secret": os.environ["SPATIAFI_CLIENT_SECRET"],
+        }
     try:
-        app_credentials = load_app_credentials()
+        app_credentials = load_app_credentials_from_file()
     except FileNotFoundError:
         app_credentials = get_new_app_credentials()
     load_app_credentials_into_env(app_credentials)
