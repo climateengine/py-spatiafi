@@ -25,6 +25,27 @@ url = "https://api.spatiafi.com/api/info"
 response = session.get(url, params=params)
 ```
 
+### Using a proxy
+
+If you're using the client in a constrained environment you may need to pass in
+`proxies` to the `get_session` function:
+
+```python
+from spatiafi import get_session
+
+proxies = {
+    "http": "http://fake-proxy.example.com:443",
+    "https": "http://fake-proxy.example.com:443",
+}
+
+session = get_session(proxies=proxies)
+
+params = {"item_id": "wildfire-risk-current-global-v1.0"}
+url = "https://api.spatiafi.com/api/info"
+
+response = session.get(url, params=params)
+```
+
 
 ### Get help with `gdal_auth`
 ```shell

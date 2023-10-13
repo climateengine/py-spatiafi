@@ -8,7 +8,7 @@ from urllib3.util import Retry
 from spatiafi import authenticate
 
 
-def get_session(app_credentials=None):
+def get_session(app_credentials=None, proxies=None):
     """
     Get an automatically-refreshing OAuth2 session (requests, sync) for the SpatiaFI API.
 
@@ -46,6 +46,10 @@ def get_session(app_credentials=None):
     )
     session.mount("http://", adapter)
     session.mount("https://", adapter)
+
+    if proxies:
+        session.proxies = proxies
+
     session.fetch_token()
     return session
 
