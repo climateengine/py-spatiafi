@@ -1,3 +1,5 @@
+import pytest
+import requests
 from spatiafi.session import get_session
 
 
@@ -15,3 +17,16 @@ def test_get_sync_session():
     r = session.get(url, params=query)
 
     assert r.status_code == 200
+
+
+def test_get_sync_session__with_proxy():
+    proxies = {
+        "http": "http://fake-proxy.example.com:443",
+        "https": "http://fake-proxy.example.com:443",
+    }
+
+    with pytest.raises(
+        requests.exceptions.ProxyError,
+        match="Failed to resolve 'fake-proxy.example.com'",
+    ):
+        get_session(proxies=proxies)
