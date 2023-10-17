@@ -8,7 +8,7 @@ from urllib3.util import Retry
 from spatiafi import authenticate
 
 
-def get_session(app_credentials=None, proxies=None):
+def get_session(app_credentials=None, **kwargs):
     """
     Get an automatically-refreshing OAuth2 session (requests, sync) for the SpatiaFI API.
 
@@ -18,6 +18,8 @@ def get_session(app_credentials=None, proxies=None):
       * First attempt to load them from the environment variables SPATIAFI_CLIENT_ID and SPATIAFI_CLIENT_SECRET
       * Check if they are stored in the default location ~/.spatiafi/app_credentials.json
       * If not, authenticate to get new app credentials and store them in the default location
+
+    Additional kwargs are passed to the OAuth2Session constructor, which passes them to the underlying requests.Session.
     """
 
     if app_credentials is None:
@@ -43,18 +45,16 @@ def get_session(app_credentials=None, proxies=None):
         token_endpoint_auth_method=ClientSecretJWT(
             "https://auth.spatiafi.com/api/v1/auth/jwt/token"
         ),
+        **kwargs
     )
     session.mount("http://", adapter)
     session.mount("https://", adapter)
-
-    if proxies:
-        session.proxies = proxies
 
     session.fetch_token()
     return session
 
 
-async def get_async_session(app_credentials=None):
+async def get_async_session(app_credentials=None, **kwargs):
     """
     Get an automatically-refreshing async OAuth2 session for the SpatiaFI API.
 
@@ -64,6 +64,9 @@ async def get_async_session(app_credentials=None):
       * First attempt to load them from the environment variables SPATIAFI_CLIENT_ID and SPATIAFI_CLIENT_SECRET
       * Check if they are stored in the default location ~/.spatiafi/app_credentials.json
       * If not, authenticate to get new app credentials and store them in the default location
+
+    Additional kwargs are passed to the AsyncOAuth2Client constructor, which passes them to the underlying
+    httpx.AsyncClient.
     """
 
     if app_credentials is None:
@@ -83,6 +86,7 @@ async def get_async_session(app_credentials=None):
         limits=httpx.Limits(max_connections=None),
         timeout=httpx.Timeout(5.0),
         transport=httpx.AsyncHTTPTransport(retries=3),
+        **kwargs
     )
     await session.fetch_token()
     return session
