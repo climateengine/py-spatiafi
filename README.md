@@ -34,8 +34,8 @@ If you're using the client in a constrained environment you may need to pass in
 from spatiafi import get_session
 
 proxies = {
-    "http": "http://fake-proxy.example.com:443",
-    "https": "http://fake-proxy.example.com:443",
+    "http": "http://fake-proxy.example.com:8080",
+    "https": "https://fake-proxy.example.com:443",
 }
 
 session = get_session(proxies=proxies)
